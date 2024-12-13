@@ -29,7 +29,7 @@ from espei.validation import schema
 from espei import generate_parameters
 from espei.utils import ImmediateClient, database_symbols_to_fit, import_qualified_object
 from espei.datasets import DatasetError, load_datasets, recursive_glob, apply_tags
-from espei.optimizers.opt_mcmc import EmceeOptimizer
+from espei.optimizers.opt_mcmc_nest import UNOptimizer
 
 _log = logging.getLogger(__name__)
 
@@ -242,10 +242,10 @@ def run_espei(run_settings):
         approximate_equilibrium = mcmc_settings.get('approximate_equilibrium')
 
         # set up and run the EmceeOptimizer
-        optimizer = EmceeOptimizer(dbf, phase_models=phase_models, scheduler=client)
+        optimizer = UNOptimizer(dbf, phase_models=phase_models, scheduler=client)
         optimizer.save_interval = save_interval
         all_symbols = syms if syms is not None else database_symbols_to_fit(dbf)
-        optimizer.fit(all_symbols, datasets, prior=prior, iterations=iterations,
+        UN_result = optimizer.fit(all_symbols, datasets, prior=prior, iterations=iterations,
                       chains_per_parameter=chains_per_parameter,
                       chain_std_deviation=chain_std_deviation,
                       deterministic=deterministic, restart_trace=restart_trace,
@@ -253,12 +253,12 @@ def run_espei(run_settings):
                       mcmc_data_weights=data_weights,
                       approximate_equilibrium=approximate_equilibrium,
                       )
-
-        optimizer.dbf.to_file(output_settings['output_db'], if_exists='overwrite')
+        # print(UN_result)
+        #optimizer.dbf.to_file(output_settings['output_db'], if_exists='overwrite')
         # close the scheduler, if possible
-        if hasattr(client, 'close'):
-                client.close()
-        return optimizer.dbf, optimizer.sampler
+        # if hasattr(client, 'close'):
+        #         client.close()
+        # return optimizer.dbf, optimizer.sampler
     return dbf
 
 
