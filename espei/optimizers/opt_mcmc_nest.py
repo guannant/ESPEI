@@ -244,15 +244,22 @@ class UNOptimizer(OptimizerBase):
         ctx.update(prior_dict)
         self.ctx = ctx
         
-        sampler = ultranest.calibrator.ReactiveNestedCalibrator(symbols_to_fit, self.UN_log_likelihood, self.UN_prior_transform,log_dir="myanalysis", resume=True)
-        nsteps = 2 * len(symbols_to_fit)
-        sampler.stepsampler = ultranest.stepsampler.SliceSampler(
-                                                nsteps=nsteps,
-                                                generate_direction=ultranest.stepsampler.generate_mixture_random_direction,
-                                                # adaptive_nsteps=False,
-                                                # max_nsteps=400
-                                            )
-        #sampler = ultranest.ReactiveNestedSampler(symbols_to_fit, self.UN_log_likelihood, self.UN_prior_transform, log_dir="myanalysis", resume=True)
+        # sampler = ultranest.calibrator.ReactiveNestedCalibrator(symbols_to_fit, self.UN_log_likelihood, self.UN_prior_transform,log_dir="myanalysis", resume=True)
+        # nsteps = 2 * len(symbols_to_fit)
+        # sampler.stepsampler = ultranest.stepsampler.SliceSampler(
+        #                                         nsteps=nsteps,
+        #                                         generate_direction=ultranest.stepsampler.generate_mixture_random_direction,
+        #                                         # adaptive_nsteps=False,
+        #                                         # max_nsteps=400
+        #                                     )
+        # while True:
+        #     u = np.random.uniform(size=(2, len(symbols_to_fit)))
+        #     p = self.UN_prior_transform(u)
+        #     logl = self.UN_log_likelihood(p)
+        #     assert np.isfinite(logl).all(), (
+        #         "Error in loglikelihood function: returned non-finite number: %s for input u=%s p=%s" % (logl, u, p))
+
+        sampler = ultranest.ReactiveNestedSampler(symbols_to_fit, self.UN_log_likelihood, self.UN_prior_transform, log_dir="debug_analysis", resume=True)
         result = sampler.run()
         # Run the initial parameters for guessing purposes:
         _log.trace("Probability for initial parameters")
@@ -338,10 +345,19 @@ class UNOptimizer(OptimizerBase):
     def UN_log_likelihood(self, params):
         lnlike = 0.0
         likelihoods = {}
+        # params = [2.31592587e+00, -3.04466338e+04, -3.78130131e+00, 
+        #           9.90049206e+03,4.00601944e+00, 5.31961335e+03, 6.20059896e+03, 
+        #           4.38170484e+04,-1.43935417e+01, 2.90918960e+04, 3.28554744e+01, 
+        #           -1.30911530e+04,-6.43597555e+01, 2.57292269e+05, -4.19316733e+00, 
+        #           -5.09340745e+03, 5.37414934e+03, 1.78002647e+04, -4.73914828e+00, 
+        #           -9.70139304e+03, 1.72440076e+01, 3.38698822e+04]
+        params = np.asarray(params, dtype=np.float64)
         for residual_obj in self.ctx.get("residual_objs", []):
             residual_starttime = time.time()
             likelihood = residual_obj.get_likelihood(params)
             residual_time = time.time() - residual_starttime
             likelihoods[type(residual_obj).__name__] = (likelihood, residual_time)
+            if not np.isfinite(likelihood):
+                return np.finfo(np.float64).min
             lnlike += likelihood
         return lnlike
