@@ -94,7 +94,8 @@ class UNOptimizer(OptimizerBase):
         nchains = params.size * chains_per_parameter
         _log.info('Initializing %s chains with %s chains per parameter.', nchains, chains_per_parameter)
         if deterministic:
-            rng = np.random.RandomState(1769)
+            np.random.seed(42)
+            #rng = np.random.RandomState(1769)
         else:
             rng = np.random.RandomState()
         # apply a Gaussian random to each parameter with std dev of std_deviation*parameter
@@ -245,13 +246,7 @@ class UNOptimizer(OptimizerBase):
         self.ctx = ctx
         
         # sampler = ultranest.calibrator.ReactiveNestedCalibrator(symbols_to_fit, self.UN_log_likelihood, self.UN_prior_transform,log_dir="myanalysis", resume=True)
-        # nsteps = 2 * len(symbols_to_fit)
-        # sampler.stepsampler = ultranest.stepsampler.SliceSampler(
-        #                                         nsteps=nsteps,
-        #                                         generate_direction=ultranest.stepsampler.generate_mixture_random_direction,
-        #                                         # adaptive_nsteps=False,
-        #                                         # max_nsteps=400
-        #                                     )
+        
         # while True:
         #     u = np.random.uniform(size=(2, len(symbols_to_fit)))
         #     p = self.UN_prior_transform(u)
@@ -259,8 +254,16 @@ class UNOptimizer(OptimizerBase):
         #     assert np.isfinite(logl).all(), (
         #         "Error in loglikelihood function: returned non-finite number: %s for input u=%s p=%s" % (logl, u, p))
 
-        sampler = ultranest.ReactiveNestedSampler(symbols_to_fit, self.UN_log_likelihood, self.UN_prior_transform, log_dir="debug_analysis", resume=True)
+        sampler = ultranest.ReactiveNestedSampler(symbols_to_fit, self.UN_log_likelihood, self.UN_prior_transform, log_dir="debug_analysis")
+        nsteps = 2 * len(symbols_to_fit)
+        sampler.stepsampler = ultranest.stepsampler.SliceSampler(
+                                                nsteps=nsteps,
+                                                generate_direction=ultranest.stepsampler.generate_mixture_random_direction,
+                                                # adaptive_nsteps=False,
+                                                # max_nsteps=400
+                                            )
         result = sampler.run()
+        sampler.plot()
         # Run the initial parameters for guessing purposes:
         _log.trace("Probability for initial parameters")
         # self.predict(initial_guess, **ctx)
@@ -358,6 +361,6 @@ class UNOptimizer(OptimizerBase):
             residual_time = time.time() - residual_starttime
             likelihoods[type(residual_obj).__name__] = (likelihood, residual_time)
             if not np.isfinite(likelihood):
-                return np.finfo(np.float64).min
+                return -1e300
             lnlike += likelihood
         return lnlike

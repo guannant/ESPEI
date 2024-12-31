@@ -245,7 +245,7 @@ def run_espei(run_settings):
         optimizer = UNOptimizer(dbf, phase_models=phase_models, scheduler=client)
         optimizer.save_interval = save_interval
         all_symbols = syms if syms is not None else database_symbols_to_fit(dbf)
-        UN_result = optimizer.fit(all_symbols, datasets, prior=prior, iterations=iterations,
+        optimizer.fit(all_symbols, datasets, prior=prior, iterations=iterations,
                       chains_per_parameter=chains_per_parameter,
                       chain_std_deviation=chain_std_deviation,
                       deterministic=deterministic, restart_trace=restart_trace,
